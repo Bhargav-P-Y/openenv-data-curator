@@ -85,8 +85,8 @@ The baseline agent was evaluated using **Llama-3.3-70B-Instruct** (via HF Router
 
 The agent's performance mathematically validates the difficulty progression—excelling at isolated logical fixes but struggling significantly with the mechanical syntax required for complex multi-line pipeline refactoring.
 
-* **Task 1 (Easy):** 1.0 (Success in 4 steps)
-* **Task 2 (Medium):** 0.0 (Failed due to persistent AST SyntaxErrors)
-* **Task 3 (Hard):** 0.0 (Failed due to variable scope reference errors)
+* **Task 1 (Easy):** 0.9 (Success in 4 steps)
+* **Task 2 (Medium):** 0.1 (Failed due to persistent AST SyntaxErrors)
+* **Task 3 (Hard):** 0.1 (Failed due to variable scope reference errors)
 
-**Overall Baseline Score:** 0.333
+**Overall Baseline Score:** 0.366
