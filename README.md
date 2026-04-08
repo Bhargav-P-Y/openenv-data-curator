@@ -12,9 +12,9 @@ tags:
 # 🧹 OpenEnv: Data Curator Alignment
 
 ## Environment Description & Motivation
-**Real-World Utility:** Preparing high-quality datasets for Supervised Fine-Tuning (SFT) and alignment is one of the most critical, labor-intensive tasks in modern AI development. Human data alignment engineers spend countless hours scrubbing Personally Identifiable Information (PII), resolving tokenizer formatting clashes, and debugging overly aggressive heuristic toxicity filters that cause model refusal behavior. 
+**Real-World Utility (Fills a real gap for the RL community):** Preparing high-quality datasets for Supervised Fine-Tuning (SFT) and alignment is one of the most critical, labor-intensive tasks in modern AI development. Human data alignment engineers spend countless hours scrubbing Personally Identifiable Information (PII), resolving tokenizer formatting clashes, and debugging overly aggressive heuristic toxicity filters that cause model refusal behavior. 
 
-This OpenEnv environment simulates the daily workflow of a Data Alignment Engineer. The autonomous agent is dropped into a workspace with a broken data pipeline and a raw `.jsonl` dataset. To succeed, the agent must read the Python pipeline code, identify logical flaws (like leaking PII or over-censoring safe medical terms), and surgically edit the codebase using an AST-validated search-and-replace tool to produce a clean, compliant dataset.
+**Creativity & Novelty:** Moving beyond generic SWE-bench tasks, this OpenEnv environment simulates the bleeding-edge daily workflow of a Data Alignment Engineer. The autonomous agent is dropped into a workspace with a broken data pipeline and a raw `.jsonl` dataset. To succeed, the agent must read the Python pipeline code, identify logical flaws (like leaking PII or over-censoring safe medical terms), and surgically edit the codebase using an AST-validated search-and-replace tool to produce a clean, compliant dataset.
 
 ## Action and Observation Spaces
 
@@ -25,7 +25,8 @@ The agent interacts with the environment by emitting JSON objects matching this 
 * `old_text` (str, optional): The exact text block to be replaced (requires exact whitespace matching).
 * `new_text` (str, optional): The replacement text block.
 
-**Anti-Cheating Guardrails:** The environment actively blocks attempts to manually edit the output `processed_dataset.jsonl` file. The agent *must* fix the underlying Python pipeline to succeed. Python edits are silently auto-formatted (PEP8) to assist the agent, but severe `SyntaxError`s result in immediate penalties.
+> **Clever Mechanic & Environment Design:** The environment features AST-Validated **Anti-Cheating Guardrails**. It actively blocks attempts to manually edit the output `processed_dataset.jsonl` file. The agent *must* fix the underlying Python pipeline to succeed. To combat hallucinated text appends, the `search_and_replace` tool pipes edits through `autopep8` and `ast.parse`. Severe `SyntaxError`s result in immediate negative reward shaping, forcing the agent to write syntactically valid Python.
+
 
 ### Observation Space (`DataCuratorObservation`)
 * `task_objective` (str): The specific curation goal for the current task.
