@@ -48,7 +48,7 @@ class DataCuratorEnvironment:
         obs_status = "Success"
         obs_output = ""
         dataset_head = None
-        reward_val = 0.1 # Changed from 0.0 to 0.1 for default reward
+        reward_val = 0.1 
         reward_reason = "Standard step."
 
         try:
@@ -63,7 +63,7 @@ class DataCuratorEnvironment:
             elif action.command == "search_and_replace":
                 if action.filepath.endswith(('.jsonl', '.csv', '.json', '.txt')):
                     obs_status = "Error"
-                    obs_output = "Action blocked: You are not allowed to manually edit output files or datasets. You must fix the pipeline code to generate the correct output."
+                    obs_output = "Action blocked."
                     reward_val = -0.1
                     reward_reason = "Attempted to cheat by editing output artifact directly."
                 else:
@@ -87,22 +87,19 @@ class DataCuratorEnvironment:
                                     capture_output=True, 
                                     check=False
                                 )
-
                                 with open(filepath, 'r') as f:
                                     formatted_content = f.read()
                                 ast.parse(formatted_content)
-
                             except SyntaxError as e:
                                 obs_status = "Error"
-                                obs_output = f"Replaced text, but the resulting Python code has a SyntaxError: {e.msg} at line {e.lineno}. The pipeline will crash if you do not fix this."
+                                obs_output = f"SyntaxError: {e.msg} at line {e.lineno}."
                                 reward_val = -0.05
-                                reward_reason = "Code modification resulted in invalid Python syntax."
+                                reward_reason = "Invalid Python syntax."
                             except FileNotFoundError:
                                 pass
-
                     else:
                         obs_status = "Error"
-                        obs_output = f"old_text not found in {action.filepath}. Remember that leading/trailing whitespaces must match exactly."
+                        obs_output = f"old_text not found in {action.filepath}."
                         reward_val = -0.05
                         reward_reason = "Failed search_and_replace."
 
@@ -115,15 +112,13 @@ class DataCuratorEnvironment:
                     timeout=10
                 )
                 obs_output = f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
-
                 if result.returncode == 0:
                     reward_val = 0.2
                     reward_reason = "Pipeline compiled and ran successfully."
                     out_path = os.path.join(WORKSPACE_DIR, "processed_dataset.jsonl")
                     if os.path.exists(out_path):
                         with open(out_path, 'r') as f:
-                            lines = f.readlines()
-                            dataset_head = "".join(lines[:2])
+                            dataset_head = "".join(f.readlines()[:2])
                 else:
                     obs_status = "Error"
                     self.state.pipeline_crashes += 1
@@ -132,7 +127,6 @@ class DataCuratorEnvironment:
 
             elif action.command == "submit":
                 done = True
-
                 if self.state.current_task_id == "task_1_bias":
                     final_score, grade_reason = grade_task_1_bias(WORKSPACE_DIR)
                 elif self.state.current_task_id == "task_2_format":
@@ -140,10 +134,9 @@ class DataCuratorEnvironment:
                 elif self.state.current_task_id == "task_3_pii":
                     final_score, grade_reason = grade_task_3_pii(WORKSPACE_DIR)
                 else:
-                    final_score, grade_reason = 0.1, "Unknown Task ID submitted." # Fallback to 0.1
+                    final_score, grade_reason = 0.1, "Unknown Task ID submitted." 
 
                 obs_output = f"Submission Evaluated.\nResult: {grade_reason}\nFinal Score: {final_score}"
-
                 reward_val = final_score
                 reward_reason = f"Episode concluded. Grader evaluation: {grade_reason}"
                 self.state.current_score = final_score
@@ -159,9 +152,22 @@ class DataCuratorEnvironment:
             reward_val = -0.1
             reward_reason = "Action failed due to an exception."
 
+        # --- THE FIX: AUTO-GRADE ON TIMEOUT ---
         if self.current_step >= self.max_steps and not done:
             done = True
-            obs_output += "\nMax steps reached. Forcing submission."
+            if self.state.current_task_id == "task_1_bias":
+                final_score, grade_reason = grade_task_1_bias(WORKSPACE_DIR)
+            elif self.state.current_task_id == "task_2_format":
+                final_score, grade_reason = grade_task_2_format(WORKSPACE_DIR)
+            elif self.state.current_task_id == "task_3_pii":
+                final_score, grade_reason = grade_task_3_pii(WORKSPACE_DIR)
+            else:
+                final_score, grade_reason = 0.1, "Unknown Task ID." 
+
+            self.state.current_score = final_score
+            reward_val = final_score
+            obs_output += f"\nMax steps reached. Auto-grading... Final Score: {final_score}"
+            reward_reason = f"Max steps reached. Auto-grade: {grade_reason}"
 
         obs = DataCuratorObservation(
             task_objective=self.state.current_task_id,
